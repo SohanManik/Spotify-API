@@ -1,0 +1,36 @@
+import os
+from dotenv import load_dotenv
+import spotipy
+from spotipy.oauth2 import SpotifyOAuth
+
+def main():
+    # load CLIENT_ID, SECRET and REDIRECT_URI from .env
+    load_dotenv()
+
+    # authenticate with the scope for top tracks
+    sp = spotipy.Spotify(
+        auth_manager=SpotifyOAuth(
+            client_id=os.getenv("SPOTIPY_CLIENT_ID"),
+            client_secret=os.getenv("SPOTIPY_CLIENT_SECRET"),
+            redirect_uri=os.getenv("SPOTIPY_REDIRECT_URI"),
+            scope="user-top-read",
+            cache_path=".cache"
+        )
+    )
+    
+    # fetch your top 5 tracks in the last 6 months (medium_term)
+    top_tracks = sp.current_user_top_tracks(time_range="medium_term", limit=5)["items"]
+    print("Top 5 Tracks in last 6 months:")
+    for i, t in enumerate(top_tracks, start=1):
+        name = t["name"]                               # track title
+        artist = t["artists"][0]["name"]               # primary artist
+        print(f"{i}. {name} - {artist}")
+
+    # fetch your top 5 artists in the last 6 months (medium_term)
+    top_artists = sp.current_user_top_artists(time_range="medium_term", limit=5)["items"]
+    print("\nTop 5 Artists in last 6 months:")
+    for i, a in enumerate(top_artists, start=1):
+        print(f"{i}. {a['name']}")                     # artist name
+
+if __name__ == "__main__":
+    main()
