@@ -3,34 +3,65 @@ from dotenv import load_dotenv
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 
+TIME_CHOICES = {
+    "1": ("short_term",  "approximately the last 4 weeks"),
+    "2": ("medium_term", "approximately the last 6 months"),
+    "3": ("long_term",   "about the past year"),
+}
+
+def choose_time_range() -> tuple[str, str]:
+    prompt = (
+        "Choose a timeframe:\n"
+        "  1) Short term (Last 4 weeks)\n"
+        "  2) Medium term (Last 6 months)\n"
+        "  3) Long term (The past year)\n"
+        "Enter 1, 2, or 3: "
+    )
+    while True:
+        choice = input(prompt).strip()
+        if choice in TIME_CHOICES:
+            return TIME_CHOICES[choice]
+        print("Invalid choice. Please enter 1, 2, or 3.\n")
+
+def print_top_items(sp: spotipy.Spotify, time_range: str, desc: str) -> None:
+    tracks = sp.current_user_top_tracks(time_range=time_range, limit=5)["items"]
+    artists = sp.current_user_top_artists(time_range=time_range, limit=5)["items"]
+
+    header = f"Top 5 Tracks ({desc})"
+    print(header)
+    print("-" * len(header))
+    if tracks:
+        for i, t in enumerate(tracks, 1):
+            print(f"{i}. {t['name']} - {t['artists'][0]['name']}")
+    else:
+        print("No top tracks found for this timeframe.")
+
+    print()
+    header = f"Top 5 Artists ({desc})"
+    print(header)
+    print("-" * len(header))
+    if artists:
+        for i, a in enumerate(artists, 1):
+            print(f"{i}. {a['name']}")
+    else:
+        print("No top artists found for this timeframe.")
+
 def main():
-    # load CLIENT_ID, SECRET and REDIRECT_URI from .env
     load_dotenv()
 
-    # authenticate with the scope for top tracks
+    time_range, desc = choose_time_range()
+
     sp = spotipy.Spotify(
         auth_manager=SpotifyOAuth(
             client_id=os.getenv("SPOTIPY_CLIENT_ID"),
             client_secret=os.getenv("SPOTIPY_CLIENT_SECRET"),
             redirect_uri=os.getenv("SPOTIPY_REDIRECT_URI"),
             scope="user-top-read",
-            cache_path=".cache"
+            cache_path=".cache",
         )
     )
-    
-    # fetch your top 5 tracks in the last 6 months (medium_term)
-    top_tracks = sp.current_user_top_tracks(time_range="medium_term", limit=5)["items"]
-    print("Top 5 Tracks in last 6 months:")
-    for i, t in enumerate(top_tracks, start=1):
-        name = t["name"]                               # track title
-        artist = t["artists"][0]["name"]               # primary artist
-        print(f"{i}. {name} - {artist}")
 
-    # fetch your top 5 artists in the last 6 months (medium_term)
-    top_artists = sp.current_user_top_artists(time_range="medium_term", limit=5)["items"]
-    print("\nTop 5 Artists in last 6 months:")
-    for i, a in enumerate(top_artists, start=1):
-        print(f"{i}. {a['name']}")                     # artist name
+    print_top_items(sp, time_range, desc)
 
 if __name__ == "__main__":
     main()
